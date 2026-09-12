@@ -15,10 +15,19 @@ Everything is configurable from the Tesla overlay under **Misc → Home menu mus
 
 ## Installing
 
-**You need [nx-ovlloader](https://github.com/WerWolv/nx-ovlloader) and
-[Tesla-Menu](https://github.com/WerWolv/Tesla-Menu) installed first**, or the overlay cannot be
-opened at all. They are separate projects and are not bundled here. After installing them your
-SD card should have `/atmosphere/contents/420000000007E51A/` and
+**You need an overlay loader installed first**, or the overlay cannot be opened at all. It is a
+separate project and is not bundled here.
+
+On **Atmosphère 1.10.0 or newer, use the [Ultrahand
+environment](https://github.com/ppkantorski/Ultrahand-Overlay)** — its `sdout.zip` bundles
+nx-ovlloader, the menu and the folder structure, and extracts straight to the SD root.
+WerWolv's original [nx-ovlloader](https://github.com/WerWolv/nx-ovlloader) and
+[Tesla-Menu](https://github.com/WerWolv/Tesla-Menu) have not been updated since 2023 and do not
+work on current Atmosphère: overlay heap sizes now vary by firmware, and 1.10.0+ refuses
+overlays that were not built against current libnx. If the overlay combo does nothing at all,
+this is almost always why.
+
+Either way your SD card should end up with `/atmosphere/contents/420000000007E51A/` and
 `/switch/.overlays/ovlmenu.ovl`. Then:
 
 1. Build (see below) or grab the release zip, and extract it to the root of your SD card.
