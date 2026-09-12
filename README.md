@@ -23,6 +23,24 @@ That's it. `/music` is used automatically, so there is nothing to set up for the
 To use a different folder or a single file, open the overlay's music browser, highlight a
 folder or file and press **ZR** to set it as the start up item.
 
+### The boot jingle
+
+Put a `startup.mp3` in `/music` and it plays once on the black Switch logo screen at power on,
+then hands over to the home menu music. It does **not** play when the console wakes from
+sleep, because the sysmodule is only started at boot, which is exactly the distinction you
+want here.
+
+It plays to the end rather than being cut off when the HOME Menu appears, so keep it short
+enough to suit the boot screen. Turning **Start at boot** off silences it along with
+everything else. The file is configurable with `startup_path` if you would rather it lived
+somewhere else.
+
+### Picking a track
+
+Drop your tracks in `/music` and open **Home menu track**. Every playable file in the folder is
+listed; pick one and the home menu loops just that, remembered across reboots. **Whole folder**
+goes back to loading everything, which takes effect on the next boot.
+
 ### Your music files
 
 `/music` lives at the root of the SD card, next to `atmosphere` and `switch`. Extensions are
@@ -75,6 +93,10 @@ Under **Misc → Home menu music**:
 
 | Option | What it does |
 | --- | --- |
+| Home menu track | Pick the track the home menu loops, or go back to playing the whole folder. The choice sticks across reboots. |
+| Volume | Music volume, saved to the config. |
+| Boot jingle | Play `startup.mp3` once on the console's boot logo screen. |
+| Restart track | Start the track over when coming back from sleep or from a game, instead of carrying on from the middle. |
 | Home menu only | Pause as soon as a game takes over. Turn off to play everywhere, like stock sys-tune. |
 | Play over suspended games | Keep playing when a game is only suspended behind the HOME Menu. |
 | Start at boot | Begin playing at boot instead of waiting for you to press play. |
@@ -102,7 +124,10 @@ pause_on_sleep = 1            ; pause before sleeping
 resume_on_wake = 1            ; resume on the lock screen
 wake_delay_ms = 1500          ; delay after waking, milliseconds
 pause_on_headphone_unplug = 1 ; pause when headphones are pulled out
-load_path =                   ; start up file or folder, empty means /music
+restart_on_resume = 0         ; restart the track instead of continuing it
+startup_enabled = 1           ; play the boot jingle once at power on
+startup_path = /music/startup.mp3
+load_path =                   ; start up file or folder, unset means /music
 ```
 
 ## How "play over suspended games" works
@@ -177,5 +202,5 @@ sysmodule down with it.
 
 ## Info for developers
 
-The IPC interface lives in [`/ipc/`](/ipc/) and the overlay uses those bindings. API version 5
+The IPC interface lives in [`/ipc/`](/ipc/) and the overlay uses those bindings. API version 6
 adds the home menu music commands; the overlay refuses to run against a mismatched sysmodule.

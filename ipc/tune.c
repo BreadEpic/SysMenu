@@ -211,6 +211,22 @@ Result tuneSetPauseOnHeadphoneUnplug(bool value) {
     return tuneSetBool(TuneIpcCmd_SetPauseOnHeadphoneUnplug, value);
 }
 
+Result tuneGetRestartOnResume(bool *out) {
+    return tuneGetBool(TuneIpcCmd_GetRestartOnResume, out);
+}
+
+Result tuneSetRestartOnResume(bool value) {
+    return tuneSetBool(TuneIpcCmd_SetRestartOnResume, value);
+}
+
+Result tuneGetStartupEnabled(bool *out) {
+    return tuneGetBool(TuneIpcCmd_GetStartupEnabled, out);
+}
+
+Result tuneSetStartupEnabled(bool value) {
+    return tuneSetBool(TuneIpcCmd_SetStartupEnabled, value);
+}
+
 Result tuneGetCurrentTitleId(u64 *out) {
     return serviceDispatchOut(&g_tune, TuneIpcCmd_GetCurrentTitleId, *out);
 }

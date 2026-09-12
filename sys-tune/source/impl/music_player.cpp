@@ -252,10 +252,22 @@ namespace tune::impl {
         u32 g_wake_delay_ms      = 1500;
         bool g_pause_on_headphone_unplug = true;
 
+        bool g_restart_on_resume = false;
+        bool g_startup_enabled   = true;
+
         /* Set at boot when autoplay is off, cleared once the user presses play. */
         bool g_autoplay_blocked  = false;
 
         u64 g_current_tid        = 0;
+
+        /* Start the current track over, used when coming back from sleep or a
+           game if the user asked for that. */
+        void RestartTrack() {
+            /* Hand it back to the tune thread rather than seeking the decoder
+               from here: the queue position is untouched, so it re-opens the
+               same track and plays it from the top. */
+            g_status = PlayerStatus::FetchNext;
+        }
 
         /* Should music play for this title? */
         bool ShouldPlayForTitle(u64 tid) {
@@ -280,10 +292,17 @@ namespace tune::impl {
                 return;
             }
 
+            const bool was_paused = g_should_pause;
             g_should_pause = !ShouldPlayForTitle(tid);
+
+            /* Closing a game hands the screen back: start the track over
+               rather than resuming from the middle. */
+            if (was_paused && !g_should_pause && g_restart_on_resume) {
+                RestartTrack();
+            }
         }
 
-        Result PlayTrack(const char* path) {
+        Result PlayTrack(const char* path, bool one_shot = false) {
             /* Open file and allocate */
             auto source = OpenFile(path);
             R_UNLESS(source != nullptr, tune::FileOpenFailure);
@@ -360,7 +379,9 @@ namespace tune::impl {
                 }
 
                 if (error || source->Done()) {
-                    if (g_repeat != RepeatMode::One) {
+                    /* A one shot track is not in the playlist, so advancing
+                       would move the real queue on by one. */
+                    if (!one_shot && g_repeat != RepeatMode::One) {
                         Next();
                     }
                     break;
@@ -398,6 +419,8 @@ namespace tune::impl {
         g_resume_on_wake = config::get_resume_on_wake();
         g_wake_delay_ms = std::clamp(config::get_wake_delay_ms(), 0, 10000);
         g_pause_on_headphone_unplug = config::get_pause_on_headphone_unplug();
+        g_restart_on_resume = config::get_restart_on_resume();
+        g_startup_enabled = config::get_startup_enabled();
         pm::SetFocusDetect(config::get_focus_detect());
 
         /* Stay quiet at boot until the user presses play. */
@@ -416,6 +439,20 @@ namespace tune::impl {
     }
 
     void TuneThreadFunc(void *) {
+        /* One shot jingle for the console's boot logo screen. The sysmodule is
+           only started at boot, so this runs once per power on and never when
+           the console wakes from sleep. */
+        if (g_startup_enabled && !g_autoplay_blocked) {
+            char startup_path[PATH_SIZE_MAX];
+            if (config::get_startup_path(startup_path, sizeof(startup_path))
+                    && GetSourceType(startup_path) != SourceType::NONE
+                    && sdmc::FileExists(startup_path)) {
+                g_status = PlayerStatus::Playing;
+                PlayTrack(startup_path, true);
+                g_status = PlayerStatus::FetchNext;
+            }
+        }
+
         {
             char load_path[PATH_SIZE_MAX];
             if (!config::get_load_path(load_path, sizeof(load_path))) {
@@ -596,7 +633,14 @@ namespace tune::impl {
                     if (g_wake_delay_ms) {
                         svcSleepThread(u64(g_wake_delay_ms) * 1'000'000ULL);
                     }
+
+                    const bool was_paused = g_should_pause;
                     g_should_pause = pre_sleep_pause;
+
+                    /* Unlocking after sleep starts the track over if asked. */
+                    if (was_paused && !g_should_pause && g_restart_on_resume) {
+                        RestartTrack();
+                    }
                 }
             }
         }
@@ -767,6 +811,24 @@ namespace tune::impl {
     void SetWakeDelayMs(u32 value) {
         g_wake_delay_ms = std::min(value, 10000u);
         config::set_wake_delay_ms(g_wake_delay_ms);
+    }
+
+    bool GetRestartOnResume() {
+        return g_restart_on_resume;
+    }
+
+    void SetRestartOnResume(bool value) {
+        g_restart_on_resume = value;
+        config::set_restart_on_resume(value);
+    }
+
+    bool GetStartupEnabled() {
+        return g_startup_enabled;
+    }
+
+    void SetStartupEnabled(bool value) {
+        g_startup_enabled = value;
+        config::set_startup_enabled(value);
     }
 
     bool GetPauseOnHeadphoneUnplug() {

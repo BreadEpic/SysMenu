@@ -49,6 +49,10 @@ namespace tune::impl {
     void SetWakeDelayMs(u32 value);
     bool GetPauseOnHeadphoneUnplug();
     void SetPauseOnHeadphoneUnplug(bool value);
+    bool GetRestartOnResume();
+    void SetRestartOnResume(bool value);
+    bool GetStartupEnabled();
+    void SetStartupEnabled(bool value);
     /// Title the sysmodule currently considers active, see pm::getCurrentPidTid.
     u64 GetCurrentTitleId();
 

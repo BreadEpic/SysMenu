@@ -73,4 +73,17 @@ void set_wake_delay_ms(int value);
 auto get_pause_on_headphone_unplug() -> bool;
 void set_pause_on_headphone_unplug(bool value);
 
+// restart the track from the start when coming back from sleep or a game
+auto get_restart_on_resume() -> bool;
+void set_restart_on_resume(bool value);
+
+// play the startup jingle once at boot
+auto get_startup_enabled() -> bool;
+void set_startup_enabled(bool value);
+
+// the jingle played once at boot, on the console's boot logo screen
+constexpr const char DEFAULT_STARTUP_PATH[]{"/music/startup.mp3"};
+auto get_startup_path(char* out, int max_len) -> int;
+void set_startup_path(const char* path);
+
 }

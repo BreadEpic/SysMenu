@@ -181,6 +181,18 @@ namespace tune {
                 case TuneIpcCmd_GetFocusDetectAvailable:
                     GET_SINGLE(bool, impl::GetFocusDetectAvailable);
 
+                case TuneIpcCmd_GetRestartOnResume:
+                    GET_SINGLE(bool, impl::GetRestartOnResume);
+
+                case TuneIpcCmd_SetRestartOnResume:
+                    SET_SINGLE(bool, impl::SetRestartOnResume);
+
+                case TuneIpcCmd_GetStartupEnabled:
+                    GET_SINGLE(bool, impl::GetStartupEnabled);
+
+                case TuneIpcCmd_SetStartupEnabled:
+                    SET_SINGLE(bool, impl::SetStartupEnabled);
+
                 case TuneIpcCmd_QuitServer:
                     running = false;
                     return 0;

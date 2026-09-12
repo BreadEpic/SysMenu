@@ -191,6 +191,20 @@ Result tuneGetPauseOnHeadphoneUnplug(bool *out);
 Result tuneSetPauseOnHeadphoneUnplug(bool value);
 
 /**
+ * @brief Start the track over when returning from sleep or from a game,
+ *        instead of carrying on from where it was.
+ */
+Result tuneGetRestartOnResume(bool *out);
+Result tuneSetRestartOnResume(bool value);
+
+/**
+ * @brief Play the startup jingle once on the console's boot logo screen.
+ * @note Only ever on a cold boot; the sysmodule is not restarted on wake.
+ */
+Result tuneGetStartupEnabled(bool *out);
+Result tuneSetStartupEnabled(bool value);
+
+/**
  * @brief Title the sysmodule currently considers active.
  * @note This is the HOME Menu id whenever a game is suspended behind it.
  */

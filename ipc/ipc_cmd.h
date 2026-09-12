@@ -47,6 +47,10 @@ enum TuneIpcCmd {
     TuneIpcCmd_SetPauseOnHeadphoneUnplug = 73,
     TuneIpcCmd_GetCurrentTitleId = 74,
     TuneIpcCmd_GetFocusDetectAvailable = 75,
+    TuneIpcCmd_GetRestartOnResume = 76,
+    TuneIpcCmd_SetRestartOnResume = 77,
+    TuneIpcCmd_GetStartupEnabled = 78,
+    TuneIpcCmd_SetStartupEnabled = 79,
 
     TuneIpcCmd_QuitServer = 50,
 

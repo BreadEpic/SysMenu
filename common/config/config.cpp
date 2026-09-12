@@ -172,4 +172,31 @@ void set_pause_on_headphone_unplug(bool value) {
     ini_putl("config", "pause_on_headphone_unplug", value, CONFIG_PATH);
 }
 
+auto get_restart_on_resume() -> bool {
+    return ini_getbool("config", "restart_on_resume", false, CONFIG_PATH);
+}
+
+void set_restart_on_resume(bool value) {
+    create_config_dir();
+    ini_putl("config", "restart_on_resume", value, CONFIG_PATH);
+}
+
+auto get_startup_enabled() -> bool {
+    return ini_getbool("config", "startup_enabled", true, CONFIG_PATH);
+}
+
+void set_startup_enabled(bool value) {
+    create_config_dir();
+    ini_putl("config", "startup_enabled", value, CONFIG_PATH);
+}
+
+auto get_startup_path(char* out, int max_len) -> int {
+    return ini_gets("config", "startup_path", DEFAULT_STARTUP_PATH, out, max_len, CONFIG_PATH);
+}
+
+void set_startup_path(const char* path) {
+    create_config_dir();
+    ini_puts("config", "startup_path", path, CONFIG_PATH);
+}
+
 }
