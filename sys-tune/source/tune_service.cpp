@@ -133,6 +133,54 @@ namespace tune {
                 case TuneIpcCmd_Remove:
                     SET_SINGLE(u32, impl::Remove);
 
+                case TuneIpcCmd_GetHomeMenuOnly:
+                    GET_SINGLE(bool, impl::GetHomeMenuOnly);
+
+                case TuneIpcCmd_SetHomeMenuOnly:
+                    SET_SINGLE(bool, impl::SetHomeMenuOnly);
+
+                case TuneIpcCmd_GetFocusDetect:
+                    GET_SINGLE(bool, impl::GetFocusDetect);
+
+                case TuneIpcCmd_SetFocusDetect:
+                    SET_SINGLE(bool, impl::SetFocusDetect);
+
+                case TuneIpcCmd_GetAutoPlay:
+                    GET_SINGLE(bool, impl::GetAutoPlay);
+
+                case TuneIpcCmd_SetAutoPlay:
+                    SET_SINGLE(bool, impl::SetAutoPlay);
+
+                case TuneIpcCmd_GetPauseOnSleep:
+                    GET_SINGLE(bool, impl::GetPauseOnSleep);
+
+                case TuneIpcCmd_SetPauseOnSleep:
+                    SET_SINGLE(bool, impl::SetPauseOnSleep);
+
+                case TuneIpcCmd_GetResumeOnWake:
+                    GET_SINGLE(bool, impl::GetResumeOnWake);
+
+                case TuneIpcCmd_SetResumeOnWake:
+                    SET_SINGLE(bool, impl::SetResumeOnWake);
+
+                case TuneIpcCmd_GetWakeDelayMs:
+                    GET_SINGLE(u32, impl::GetWakeDelayMs);
+
+                case TuneIpcCmd_SetWakeDelayMs:
+                    SET_SINGLE(u32, impl::SetWakeDelayMs);
+
+                case TuneIpcCmd_GetPauseOnHeadphoneUnplug:
+                    GET_SINGLE(bool, impl::GetPauseOnHeadphoneUnplug);
+
+                case TuneIpcCmd_SetPauseOnHeadphoneUnplug:
+                    SET_SINGLE(bool, impl::SetPauseOnHeadphoneUnplug);
+
+                case TuneIpcCmd_GetCurrentTitleId:
+                    GET_SINGLE(u64, impl::GetCurrentTitleId);
+
+                case TuneIpcCmd_GetFocusDetectAvailable:
+                    GET_SINGLE(bool, impl::GetFocusDetectAvailable);
+
                 case TuneIpcCmd_QuitServer:
                     running = false;
                     return 0;

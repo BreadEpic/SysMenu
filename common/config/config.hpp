@@ -37,5 +37,40 @@ void set_default_title_volume(float value);
 // returns the length of the string
 auto get_load_path(char* out, int max_len) -> int;
 void set_load_path(const char* path);
+// false when the key was never written, which is when the default folder applies
+auto has_load_path() -> bool;
+
+/* -- home menu music -- */
+
+// folder used at boot when no start up file/folder has been set
+constexpr const char DEFAULT_LOAD_PATH[]{"/music"};
+
+// only play on the home menu and system applets, pause in games
+auto get_home_menu_only() -> bool;
+void set_home_menu_only(bool value);
+
+// report a game suspended behind the home menu as the home menu
+auto get_focus_detect() -> bool;
+void set_focus_detect(bool value);
+
+// start playback on boot without having to press play
+auto get_autoplay() -> bool;
+void set_autoplay(bool value);
+
+// pause before the console sleeps
+auto get_pause_on_sleep() -> bool;
+void set_pause_on_sleep(bool value);
+
+// resume once the console wakes back up
+auto get_resume_on_wake() -> bool;
+void set_resume_on_wake(bool value);
+
+// how long to wait after waking before resuming, in milliseconds
+auto get_wake_delay_ms() -> int;
+void set_wake_delay_ms(int value);
+
+// pause when the headphones are unplugged
+auto get_pause_on_headphone_unplug() -> bool;
+void set_pause_on_headphone_unplug(bool value);
 
 }

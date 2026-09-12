@@ -12,6 +12,7 @@ namespace tune::impl {
     void TuneThreadFunc(void *);
     void GpioThreadFunc(void *);
     void PmdmntThreadFunc(void *);
+    void PscmThreadFunc(void *);
 
     bool GetStatus();
     void Play();
@@ -30,6 +31,26 @@ namespace tune::impl {
     void TitlePause();
     void DefaultTitlePlay();
     void DefaultTitlePause();
+
+    /* Home menu music behaviour. */
+    bool GetHomeMenuOnly();
+    void SetHomeMenuOnly(bool value);
+    bool GetFocusDetect();
+    void SetFocusDetect(bool value);
+    /// False when pdm:qry could not be opened, focus detection then does nothing.
+    bool GetFocusDetectAvailable();
+    bool GetAutoPlay();
+    void SetAutoPlay(bool value);
+    bool GetPauseOnSleep();
+    void SetPauseOnSleep(bool value);
+    bool GetResumeOnWake();
+    void SetResumeOnWake(bool value);
+    u32 GetWakeDelayMs();
+    void SetWakeDelayMs(u32 value);
+    bool GetPauseOnHeadphoneUnplug();
+    void SetPauseOnHeadphoneUnplug(bool value);
+    /// Title the sysmodule currently considers active, see pm::getCurrentPidTid.
+    u64 GetCurrentTitleId();
 
     RepeatMode GetRepeatMode();
     void SetRepeatMode(RepeatMode mode);

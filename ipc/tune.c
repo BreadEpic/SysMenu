@@ -138,6 +138,83 @@ Result tuneRemove(u32 index) {
     return serviceDispatchIn(&g_tune, TuneIpcCmd_Remove, index);
 }
 
+/* The sysmodule stores these as a single byte, see GET_SINGLE/SET_SINGLE. */
+static Result tuneGetBool(u32 cmd_id, bool *out) {
+    u8 tmp = 0;
+    Result rc = serviceDispatchOut(&g_tune, cmd_id, tmp);
+    if (R_SUCCEEDED(rc) && out) *out = tmp & 1;
+    return rc;
+}
+
+static Result tuneSetBool(u32 cmd_id, bool value) {
+    u8 tmp = value ? 1 : 0;
+    return serviceDispatchIn(&g_tune, cmd_id, tmp);
+}
+
+Result tuneGetHomeMenuOnly(bool *out) {
+    return tuneGetBool(TuneIpcCmd_GetHomeMenuOnly, out);
+}
+
+Result tuneSetHomeMenuOnly(bool value) {
+    return tuneSetBool(TuneIpcCmd_SetHomeMenuOnly, value);
+}
+
+Result tuneGetFocusDetect(bool *out) {
+    return tuneGetBool(TuneIpcCmd_GetFocusDetect, out);
+}
+
+Result tuneSetFocusDetect(bool value) {
+    return tuneSetBool(TuneIpcCmd_SetFocusDetect, value);
+}
+
+Result tuneGetFocusDetectAvailable(bool *out) {
+    return tuneGetBool(TuneIpcCmd_GetFocusDetectAvailable, out);
+}
+
+Result tuneGetAutoPlay(bool *out) {
+    return tuneGetBool(TuneIpcCmd_GetAutoPlay, out);
+}
+
+Result tuneSetAutoPlay(bool value) {
+    return tuneSetBool(TuneIpcCmd_SetAutoPlay, value);
+}
+
+Result tuneGetPauseOnSleep(bool *out) {
+    return tuneGetBool(TuneIpcCmd_GetPauseOnSleep, out);
+}
+
+Result tuneSetPauseOnSleep(bool value) {
+    return tuneSetBool(TuneIpcCmd_SetPauseOnSleep, value);
+}
+
+Result tuneGetResumeOnWake(bool *out) {
+    return tuneGetBool(TuneIpcCmd_GetResumeOnWake, out);
+}
+
+Result tuneSetResumeOnWake(bool value) {
+    return tuneSetBool(TuneIpcCmd_SetResumeOnWake, value);
+}
+
+Result tuneGetWakeDelayMs(u32 *out) {
+    return serviceDispatchOut(&g_tune, TuneIpcCmd_GetWakeDelayMs, *out);
+}
+
+Result tuneSetWakeDelayMs(u32 value) {
+    return serviceDispatchIn(&g_tune, TuneIpcCmd_SetWakeDelayMs, value);
+}
+
+Result tuneGetPauseOnHeadphoneUnplug(bool *out) {
+    return tuneGetBool(TuneIpcCmd_GetPauseOnHeadphoneUnplug, out);
+}
+
+Result tuneSetPauseOnHeadphoneUnplug(bool value) {
+    return tuneSetBool(TuneIpcCmd_SetPauseOnHeadphoneUnplug, value);
+}
+
+Result tuneGetCurrentTitleId(u64 *out) {
+    return serviceDispatchOut(&g_tune, TuneIpcCmd_GetCurrentTitleId, *out);
+}
+
 Result tuneQuit() {
     return serviceDispatch(&g_tune, TuneIpcCmd_QuitServer);
 }

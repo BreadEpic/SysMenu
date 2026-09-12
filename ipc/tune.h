@@ -142,6 +142,60 @@ Result tuneEnqueue(const char *path, TuneEnqueueType type);
 
 Result tuneRemove(u32 index);
 
+/**
+ * @brief Play only on the HOME Menu and system applets, pausing in games.
+ */
+Result tuneGetHomeMenuOnly(bool *out);
+Result tuneSetHomeMenuOnly(bool value);
+
+/**
+ * @brief Treat a game suspended behind the HOME Menu as the HOME Menu.
+ * @note Requires pdm:qry, otherwise this has no effect.
+ */
+Result tuneGetFocusDetect(bool *out);
+Result tuneSetFocusDetect(bool value);
+
+/**
+ * @brief Whether pdm:qry could be opened; focus detection does nothing without it.
+ */
+Result tuneGetFocusDetectAvailable(bool *out);
+
+/**
+ * @brief Start playing at boot without having to press play.
+ */
+Result tuneGetAutoPlay(bool *out);
+Result tuneSetAutoPlay(bool value);
+
+/**
+ * @brief Pause before the console goes to sleep.
+ */
+Result tuneGetPauseOnSleep(bool *out);
+Result tuneSetPauseOnSleep(bool value);
+
+/**
+ * @brief Resume once the console wakes up, on the lock screen.
+ */
+Result tuneGetResumeOnWake(bool *out);
+Result tuneSetResumeOnWake(bool value);
+
+/**
+ * @brief Delay in milliseconds between waking up and resuming playback.
+ */
+Result tuneGetWakeDelayMs(u32 *out);
+Result tuneSetWakeDelayMs(u32 value);
+
+/**
+ * @brief Pause when the headphones are unplugged.
+ */
+Result tuneGetPauseOnHeadphoneUnplug(bool *out);
+Result tuneSetPauseOnHeadphoneUnplug(bool value);
+
+/**
+ * @brief Title the sysmodule currently considers active.
+ * @note This is the HOME Menu id whenever a game is suspended behind it.
+ */
+Result tuneGetCurrentTitleId(u64 *out);
+
 Result tuneQuit();
 
 Result tuneGetApiVersion(u32 *version);

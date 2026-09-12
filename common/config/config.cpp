@@ -105,4 +105,71 @@ void set_load_path(const char* path) {
     ini_puts("config", "load_path", path, CONFIG_PATH);
 }
 
+auto has_load_path() -> bool {
+    return ini_haskey("config", "load_path", CONFIG_PATH);
+}
+
+auto get_home_menu_only() -> bool {
+    return ini_getbool("config", "home_menu_only", true, CONFIG_PATH);
+}
+
+void set_home_menu_only(bool value) {
+    create_config_dir();
+    ini_putl("config", "home_menu_only", value, CONFIG_PATH);
+}
+
+auto get_focus_detect() -> bool {
+    return ini_getbool("config", "focus_detect", true, CONFIG_PATH);
+}
+
+void set_focus_detect(bool value) {
+    create_config_dir();
+    ini_putl("config", "focus_detect", value, CONFIG_PATH);
+}
+
+auto get_autoplay() -> bool {
+    return ini_getbool("config", "autoplay", true, CONFIG_PATH);
+}
+
+void set_autoplay(bool value) {
+    create_config_dir();
+    ini_putl("config", "autoplay", value, CONFIG_PATH);
+}
+
+auto get_pause_on_sleep() -> bool {
+    return ini_getbool("config", "pause_on_sleep", true, CONFIG_PATH);
+}
+
+void set_pause_on_sleep(bool value) {
+    create_config_dir();
+    ini_putl("config", "pause_on_sleep", value, CONFIG_PATH);
+}
+
+auto get_resume_on_wake() -> bool {
+    return ini_getbool("config", "resume_on_wake", true, CONFIG_PATH);
+}
+
+void set_resume_on_wake(bool value) {
+    create_config_dir();
+    ini_putl("config", "resume_on_wake", value, CONFIG_PATH);
+}
+
+auto get_wake_delay_ms() -> int {
+    return ini_getl("config", "wake_delay_ms", 1500, CONFIG_PATH);
+}
+
+void set_wake_delay_ms(int value) {
+    create_config_dir();
+    ini_putl("config", "wake_delay_ms", value, CONFIG_PATH);
+}
+
+auto get_pause_on_headphone_unplug() -> bool {
+    return ini_getbool("config", "pause_on_headphone_unplug", true, CONFIG_PATH);
+}
+
+void set_pause_on_headphone_unplug(bool value) {
+    create_config_dir();
+    ini_putl("config", "pause_on_headphone_unplug", value, CONFIG_PATH);
+}
+
 }
