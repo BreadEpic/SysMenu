@@ -30,6 +30,24 @@ enum TuneIpcCmd {
     TuneIpcCmd_Enqueue = 40,
     TuneIpcCmd_Remove = 41,
 
+    /* Home menu music behaviour. */
+    TuneIpcCmd_GetHomeMenuOnly = 60,
+    TuneIpcCmd_SetHomeMenuOnly = 61,
+    TuneIpcCmd_GetFocusDetect = 62,
+    TuneIpcCmd_SetFocusDetect = 63,
+    TuneIpcCmd_GetAutoPlay = 64,
+    TuneIpcCmd_SetAutoPlay = 65,
+    TuneIpcCmd_GetPauseOnSleep = 66,
+    TuneIpcCmd_SetPauseOnSleep = 67,
+    TuneIpcCmd_GetResumeOnWake = 68,
+    TuneIpcCmd_SetResumeOnWake = 69,
+    TuneIpcCmd_GetWakeDelayMs = 70,
+    TuneIpcCmd_SetWakeDelayMs = 71,
+    TuneIpcCmd_GetPauseOnHeadphoneUnplug = 72,
+    TuneIpcCmd_SetPauseOnHeadphoneUnplug = 73,
+    TuneIpcCmd_GetCurrentTitleId = 74,
+    TuneIpcCmd_GetFocusDetectAvailable = 75,
+
     TuneIpcCmd_QuitServer = 50,
 
     TuneIpcCmd_GetApiVersion = 5000,

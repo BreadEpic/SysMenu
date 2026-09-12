@@ -244,6 +244,45 @@ namespace tune::impl {
         bool g_should_pause      = false;
         bool g_should_run        = true;
 
+        /* Home menu music behaviour, mirrored from the config. */
+        bool g_home_menu_only    = true;
+        bool g_autoplay          = true;
+        bool g_pause_on_sleep    = true;
+        bool g_resume_on_wake    = true;
+        u32 g_wake_delay_ms      = 1500;
+        bool g_pause_on_headphone_unplug = true;
+
+        /* Set at boot when autoplay is off, cleared once the user presses play. */
+        bool g_autoplay_blocked  = false;
+
+        u64 g_current_tid        = 0;
+
+        /* Should music play for this title? */
+        bool ShouldPlayForTitle(u64 tid) {
+            /* An explicit per title choice always wins. */
+            if (config::has_title_enabled(tid)) {
+                return config::get_title_enabled(tid);
+            }
+
+            /* Home menu music: play on the HOME Menu and system applets only. */
+            if (g_home_menu_only) {
+                return pm::IsSystemApplet(tid);
+            }
+
+            return config::get_title_enabled_default();
+        }
+
+        void ApplyTitleState(u64 tid) {
+            g_current_tid = tid;
+
+            if (g_autoplay_blocked) {
+                g_should_pause = true;
+                return;
+            }
+
+            g_should_pause = !ShouldPlayForTitle(tid);
+        }
+
         Result PlayTrack(const char* path) {
             /* Open file and allocate */
             auto source = OpenFile(path);
@@ -262,7 +301,27 @@ namespace tune::impl {
             // for the first buffer, use very small buffer sizes to reduce latency between songs.
             int first = 1;
 
+            // audout is running at this point, see above.
+            bool paused = false;
+
             while (g_should_run && g_status == PlayerStatus::Playing) {
+                /* Stop audout whilst paused so that launching a game silences */
+                /* the music straight away, rather than after the queued */
+                /* buffers have drained. */
+                if (paused != g_should_pause) {
+                    paused = g_should_pause;
+                    if (paused) {
+                        audoutStopAudioOut();
+                    } else if (R_FAILED(audoutStartAudioOut())) {
+                        /* Don't append to a stopped device: that surfaces as a */
+                        /* playback error and would drop the track from the */
+                        /* playlist. Stay paused and retry instead. */
+                        paused = true;
+                        svcSleepThread(17'000'000);
+                        continue;
+                    }
+                }
+
                 if (g_should_pause) {
                     svcSleepThread(17'000'000);
                     continue;
@@ -332,6 +391,19 @@ namespace tune::impl {
         SetShuffleMode(static_cast<ShuffleMode>(config::get_shuffle()));
         SetDefaultTitleVolume(config::get_default_title_volume());
 
+        /* Home menu music behaviour. */
+        g_home_menu_only = config::get_home_menu_only();
+        g_autoplay = config::get_autoplay();
+        g_pause_on_sleep = config::get_pause_on_sleep();
+        g_resume_on_wake = config::get_resume_on_wake();
+        g_wake_delay_ms = std::clamp(config::get_wake_delay_ms(), 0, 10000);
+        g_pause_on_headphone_unplug = config::get_pause_on_headphone_unplug();
+        pm::SetFocusDetect(config::get_focus_detect());
+
+        /* Stay quiet at boot until the user presses play. */
+        g_autoplay_blocked = !g_autoplay;
+        g_should_pause = g_autoplay_blocked;
+
         // reserves memory so that we don't allocate later on.
         g_playlist.Init();
 
@@ -346,7 +418,19 @@ namespace tune::impl {
     void TuneThreadFunc(void *) {
         {
             char load_path[PATH_SIZE_MAX];
-            if (config::get_load_path(load_path, sizeof(load_path))) {
+            if (!config::get_load_path(load_path, sizeof(load_path))) {
+                /* Nothing has ever been configured, so fall back to the default */
+                /* music folder and have home menu music work out of the box. An */
+                /* empty value that was written on purpose means the user removed */
+                /* their start up item, so honour that and load nothing. */
+                if (config::has_load_path()) {
+                    load_path[0] = '\0';
+                } else {
+                    std::snprintf(load_path, sizeof(load_path), "%s", config::DEFAULT_LOAD_PATH);
+                }
+            }
+
+            {
                 // check if the path is a file or folder.
                 FsDirEntryType type;
                 if (R_SUCCEEDED(sdmc::GetType(load_path, &type))) {
@@ -435,21 +519,86 @@ namespace tune::impl {
         /* [0] Low == plugged in; [1] High == not plugged in. */
         GpioValue old_value = GpioValue_High;
 
-        // TODO(TJ): pausing on headphone change should be a config option.
         while (g_should_run) {
             /* Fetch current gpio value. */
             GpioValue value;
             if (R_SUCCEEDED(gpioPadGetValue(session, &value))) {
-                if (old_value == GpioValue_Low && value == GpioValue_High) {
-                    pre_unplug_pause = g_should_pause;
-                    g_should_pause     = true;
-                } else if (old_value == GpioValue_High && value == GpioValue_Low) {
-                    if (!pre_unplug_pause)
-                        g_should_pause = false;
+                if (g_pause_on_headphone_unplug) {
+                    if (old_value == GpioValue_Low && value == GpioValue_High) {
+                        pre_unplug_pause = g_should_pause;
+                        g_should_pause     = true;
+                    } else if (old_value == GpioValue_High && value == GpioValue_Low) {
+                        if (!pre_unplug_pause)
+                            g_should_pause = false;
+                    }
                 }
                 old_value = value;
             }
             svcSleepThread(10'000'000);
+        }
+    }
+
+    void PscmThreadFunc(void *ptr) {
+        PscPmModule *module = static_cast<PscPmModule *>(ptr);
+
+        /* Playback state from before the console went to sleep. */
+        bool pre_sleep_pause = false;
+        bool sleeping = false;
+        bool wake_pending = false;
+
+        while (g_should_run) {
+            Result rc = eventWait(&module->event, 10'000'000);
+            if (R_VALUE(rc) == KERNELRESULT(TimedOut))
+                continue;
+            if (R_VALUE(rc) == KERNELRESULT(Cancelled))
+                break;
+
+            PscPmState state;
+            u32 flags;
+            if (R_FAILED(pscPmModuleGetRequest(module, &state, &flags)))
+                continue;
+
+            switch (state) {
+                /* NOTE: ReadySleep can be sent more than once, and the wake */
+                /* event is occasionally missed, so only the first of each */
+                /* transition is acted on. */
+                case PscPmState_ReadySleep:
+                    if (!sleeping) {
+                        sleeping = true;
+                        pre_sleep_pause = g_should_pause;
+                    }
+                    if (g_pause_on_sleep) {
+                        g_should_pause = true;
+                    }
+                    break;
+
+                case PscPmState_ReadyAwaken:
+                    if (sleeping) {
+                        sleeping = false;
+                        wake_pending = true;
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+
+            /* Acknowledge before doing anything slow; the power state */
+            /* transition waits on every registered module. */
+            pscPmModuleAcknowledge(module, state);
+
+            if (wake_pending) {
+                wake_pending = false;
+
+                if (g_resume_on_wake) {
+                    /* Give audio services a moment to come back up, */
+                    /* otherwise the first samples crackle. */
+                    if (g_wake_delay_ms) {
+                        svcSleepThread(u64(g_wake_delay_ms) * 1'000'000ULL);
+                    }
+                    g_should_pause = pre_sleep_pause;
+                }
+            }
         }
     }
 
@@ -465,11 +614,7 @@ namespace tune::impl {
                 }
 
                 // TODO(TJ): fade song in rather than abruptly playing to avoid jump scares
-                if (config::has_title_enabled(new_tid)) {
-                    g_should_pause = !config::get_title_enabled(new_tid);
-                } else {
-                    g_should_pause = !config::get_title_enabled_default();
-                }
+                ApplyTitleState(new_tid);
             }
 
             // sadly, we can't simply apply auda when the title changes
@@ -491,6 +636,8 @@ namespace tune::impl {
     }
 
     void Play() {
+        /* An explicit play overrides "don't start at boot". */
+        g_autoplay_blocked = false;
         g_should_pause = false;
     }
 
@@ -559,6 +706,80 @@ namespace tune::impl {
         volume = std::clamp(volume, 0.f, VOLUME_MAX);
         g_default_title_volume = volume;
         config::set_default_title_volume(volume);
+    }
+
+    bool GetHomeMenuOnly() {
+        return g_home_menu_only;
+    }
+
+    void SetHomeMenuOnly(bool value) {
+        g_home_menu_only = value;
+        config::set_home_menu_only(value);
+
+        /* Apply straight away rather than on the next title change. */
+        ApplyTitleState(g_current_tid);
+    }
+
+    bool GetFocusDetect() {
+        return pm::GetFocusDetect();
+    }
+
+    void SetFocusDetect(bool value) {
+        pm::SetFocusDetect(value);
+        config::set_focus_detect(value);
+    }
+
+    bool GetFocusDetectAvailable() {
+        return pm::IsFocusDetectAvailable();
+    }
+
+    bool GetAutoPlay() {
+        return g_autoplay;
+    }
+
+    void SetAutoPlay(bool value) {
+        g_autoplay = value;
+        config::set_autoplay(value);
+    }
+
+    bool GetPauseOnSleep() {
+        return g_pause_on_sleep;
+    }
+
+    void SetPauseOnSleep(bool value) {
+        g_pause_on_sleep = value;
+        config::set_pause_on_sleep(value);
+    }
+
+    bool GetResumeOnWake() {
+        return g_resume_on_wake;
+    }
+
+    void SetResumeOnWake(bool value) {
+        g_resume_on_wake = value;
+        config::set_resume_on_wake(value);
+    }
+
+    u32 GetWakeDelayMs() {
+        return g_wake_delay_ms;
+    }
+
+    void SetWakeDelayMs(u32 value) {
+        g_wake_delay_ms = std::min(value, 10000u);
+        config::set_wake_delay_ms(g_wake_delay_ms);
+    }
+
+    bool GetPauseOnHeadphoneUnplug() {
+        return g_pause_on_headphone_unplug;
+    }
+
+    void SetPauseOnHeadphoneUnplug(bool value) {
+        g_pause_on_headphone_unplug = value;
+        config::set_pause_on_headphone_unplug(value);
+    }
+
+    u64 GetCurrentTitleId() {
+        return g_current_tid;
     }
 
     RepeatMode GetRepeatMode() {
