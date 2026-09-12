@@ -1,0 +1,11 @@
+*.elf
+*.nso
+*.nsp
+*.nro
+*.nacp
+*.npdm
+*.ovl
+.vscode/settings.json
+build
+dist
+*.zip
