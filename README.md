@@ -121,10 +121,24 @@ cd SysMenu
 make dist
 ```
 
-Needs devkitPro with devkitA64, libnx and switch-tools. `make dist` writes a ready to copy
-SD card layout to `dist/` plus a zip.
+Needs devkitPro with the `switch-dev` package group (devkitA64, libnx and switch-tools), plus
+`zip`:
 
-If you cloned without `--recursive`, run `git submodule update --init` to fetch libtesla.
+```sh
+pacman -S switch-dev zip
+```
+
+On Windows run that from the MSYS2 shell devkitPro installs; `make` itself works from a normal
+prompt too.
+
+`make dist` produces two things:
+
+- `dist/`, the SD card layout, for copying straight onto a card you have plugged in.
+- `SysMenu-<version>-<hash>.zip`, the release archive. It holds `atmosphere/` and `switch/` at
+  its root, so it extracts over the root of an SD card with nothing else to do.
+
+If you cloned without `--recursive`, run `git submodule update --init` to fetch libtesla,
+otherwise the overlay won't find `tesla.hpp`.
 
 ## Is this safe?
 
