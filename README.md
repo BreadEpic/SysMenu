@@ -23,6 +23,22 @@ That's it. `/music` is used automatically, so there is nothing to set up for the
 To use a different folder or a single file, open the overlay's music browser, highlight a
 folder or file and press **ZR** to set it as the start up item.
 
+### Your music files
+
+`/music` lives at the root of the SD card, next to `atmosphere` and `switch`. Extensions are
+matched case insensitively, so `.MP3` is fine, and any sample rate works: everything is
+resampled to 48 kHz on the way out.
+
+Four limits worth knowing:
+
+- **Subfolders are not scanned.** `/music/zelda/theme.mp3` will not load. Tracks have to sit
+  directly in the folder.
+- **300 tracks** is the ceiling.
+- **256 characters** is the longest a full path can be, `/music/` included. Longer ones are
+  skipped without a word.
+- **Plain ASCII file names** are safest. Non ASCII names are a long standing sore spot, which
+  is why the overlay asks about umlauts when a track fails to load.
+
 You still need [Tesla Menu](https://github.com/WerWolv/Tesla-Menu) and
 [nx-ovlloader](https://github.com/WerWolv/nx-ovlloader) for the overlay, same as sys-tune.
 
