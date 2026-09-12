@@ -15,6 +15,12 @@ Everything is configurable from the Tesla overlay under **Misc → Home menu mus
 
 ## Installing
 
+**You need [nx-ovlloader](https://github.com/WerWolv/nx-ovlloader) and
+[Tesla-Menu](https://github.com/WerWolv/Tesla-Menu) installed first**, or the overlay cannot be
+opened at all. They are separate projects and are not bundled here. After installing them your
+SD card should have `/atmosphere/contents/420000000007E51A/` and
+`/switch/.overlays/ovlmenu.ovl`. Then:
+
 1. Build (see below) or grab the release zip, and extract it to the root of your SD card.
 2. Put `.mp3`, `.flac`, `.wav` or `.wave` files in a `/music` folder on the SD card.
 3. Reboot.
@@ -30,8 +36,15 @@ then hands over to the home menu music. It does **not** play when the console wa
 sleep, because the sysmodule is only started at boot, which is exactly the distinction you
 want here.
 
-It plays to the end rather than being cut off when the HOME Menu appears, so keep it short
-enough to suit the boot screen. Turning **Start at boot** off silences it along with
+It plays at full volume from its first sample rather than fading in, since the point is to be
+heard as early as possible. The music that follows it fades in. It plays to the end rather
+than being cut off when the HOME Menu appears, so keep it short enough to suit the boot
+screen.
+
+How early it can start is bounded by the console: the sysmodule cannot make a sound until
+Atmosphère has launched it and the audio service is up. SysMenu reads only the handful of
+settings it needs before the first sample and loads the rest in the background, but the floor
+is out of its hands. Turning **Start at boot** off silences it along with
 everything else. The file is configurable with `startup_path` if you would rather it lived
 somewhere else.
 
@@ -56,9 +69,6 @@ Four limits worth knowing:
   skipped without a word.
 - **Plain ASCII file names** are safest. Non ASCII names are a long standing sore spot, which
   is why the overlay asks about umlauts when a track fails to load.
-
-You still need [Tesla Menu](https://github.com/WerWolv/Tesla-Menu) and
-[nx-ovlloader](https://github.com/WerWolv/nx-ovlloader) for the overlay, same as sys-tune.
 
 ## Where the music plays
 
@@ -95,6 +105,7 @@ Under **Misc → Home menu music**:
 | --- | --- |
 | Home menu track | Pick the track the home menu loops, or go back to playing the whole folder. The choice sticks across reboots. |
 | Volume | Music volume, saved to the config. |
+| Fade | How long the music takes to ease in and out. Off for a hard cut. |
 | Boot jingle | Play `startup.mp3` once on the console's boot logo screen. |
 | Restart track | Start the track over when coming back from sleep or from a game, instead of carrying on from the middle. |
 | Home menu only | Pause as soon as a game takes over. Turn off to play everywhere, like stock sys-tune. |
@@ -124,6 +135,7 @@ pause_on_sleep = 1            ; pause before sleeping
 resume_on_wake = 1            ; resume on the lock screen
 wake_delay_ms = 1500          ; delay after waking, milliseconds
 pause_on_headphone_unplug = 1 ; pause when headphones are pulled out
+fade_ms = 400                 ; fade in/out length, 0 for a hard cut
 restart_on_resume = 0         ; restart the track instead of continuing it
 startup_enabled = 1           ; play the boot jingle once at power on
 startup_path = /music/startup.mp3
@@ -202,5 +214,5 @@ sysmodule down with it.
 
 ## Info for developers
 
-The IPC interface lives in [`/ipc/`](/ipc/) and the overlay uses those bindings. API version 6
+The IPC interface lives in [`/ipc/`](/ipc/) and the overlay uses those bindings. API version 7
 adds the home menu music commands; the overlay refuses to run against a mismatched sysmodule.

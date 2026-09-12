@@ -51,6 +51,8 @@ enum TuneIpcCmd {
     TuneIpcCmd_SetRestartOnResume = 77,
     TuneIpcCmd_GetStartupEnabled = 78,
     TuneIpcCmd_SetStartupEnabled = 79,
+    TuneIpcCmd_GetFadeMs = 80,
+    TuneIpcCmd_SetFadeMs = 81,
 
     TuneIpcCmd_QuitServer = 50,
 

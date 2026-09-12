@@ -73,6 +73,10 @@ void set_wake_delay_ms(int value);
 auto get_pause_on_headphone_unplug() -> bool;
 void set_pause_on_headphone_unplug(bool value);
 
+// how long the fade in and out takes, in milliseconds, 0 disables it
+auto get_fade_ms() -> int;
+void set_fade_ms(int value);
+
 // restart the track from the start when coming back from sleep or a game
 auto get_restart_on_resume() -> bool;
 void set_restart_on_resume(bool value);

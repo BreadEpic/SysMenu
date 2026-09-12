@@ -172,6 +172,15 @@ void set_pause_on_headphone_unplug(bool value) {
     ini_putl("config", "pause_on_headphone_unplug", value, CONFIG_PATH);
 }
 
+auto get_fade_ms() -> int {
+    return ini_getl("config", "fade_ms", 400, CONFIG_PATH);
+}
+
+void set_fade_ms(int value) {
+    create_config_dir();
+    ini_putl("config", "fade_ms", value, CONFIG_PATH);
+}
+
 auto get_restart_on_resume() -> bool {
     return ini_getbool("config", "restart_on_resume", false, CONFIG_PATH);
 }

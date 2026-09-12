@@ -191,6 +191,12 @@ Result tuneGetPauseOnHeadphoneUnplug(bool *out);
 Result tuneSetPauseOnHeadphoneUnplug(bool value);
 
 /**
+ * @brief How long the fade in and out takes, in milliseconds. 0 disables it.
+ */
+Result tuneGetFadeMs(u32 *out);
+Result tuneSetFadeMs(u32 value);
+
+/**
  * @brief Start the track over when returning from sleep or from a game,
  *        instead of carrying on from where it was.
  */

@@ -255,6 +255,45 @@ namespace tune::impl {
         bool g_restart_on_resume = false;
         bool g_startup_enabled   = true;
 
+        /* Output gain, ramped towards 0 or 1 so that pausing for a game and
+           coming back don't cut in and out abruptly. */
+        float g_fade_gain        = 0.f;
+        u32 g_fade_ms            = 400;
+
+        /* Ramps the gain across one buffer of interleaved s16 frames. */
+        void ApplyFade(s16* samples, size_t size_bytes, bool fade_out) {
+            const float target = fade_out ? 0.f : 1.f;
+
+            /* Ordinary playback at full volume, leave the samples alone. */
+            if (target == 1.f && g_fade_gain >= 1.f) {
+                return;
+            }
+
+            const size_t count = size_bytes / sizeof(s16);
+            if (!count) {
+                return;
+            }
+
+            float end = target;
+            if (g_fade_ms) {
+                /* Fraction of the ramp this buffer covers. */
+                const float buffer_ms = float(count / AUDIO_CHANNEL_COUNT) * 1000.f / float(AUDIO_FREQ);
+                const float step = buffer_ms / float(g_fade_ms);
+                end = fade_out ? std::max(target, g_fade_gain - step)
+                               : std::min(target, g_fade_gain + step);
+            }
+
+            const float start = g_fade_gain;
+            const float delta = end - start;
+
+            for (size_t i = 0; i < count; i++) {
+                const float gain = start + delta * (float(i) / float(count));
+                samples[i] = static_cast<s16>(float(samples[i]) * gain);
+            }
+
+            g_fade_gain = end;
+        }
+
         /* Set at boot when autoplay is off, cleared once the user presses play. */
         bool g_autoplay_blocked  = false;
 
@@ -302,6 +341,31 @@ namespace tune::impl {
             }
         }
 
+        /* Everything that isn't needed to get the first sample out. Each ini
+           read is its own sd card hit, so this runs on the pmdmnt thread
+           alongside the boot jingle rather than holding playback up. */
+        void LoadSettings() {
+            /* Fetch values from config, sanitize the return value */
+            if (auto c = config::get_repeat(); c <= 2 && c >= 0) {
+                SetRepeatMode(static_cast<RepeatMode>(c));
+            }
+
+            SetShuffleMode(static_cast<ShuffleMode>(config::get_shuffle()));
+
+            /* Assigned rather than set: the setters write the value straight
+               back out again, which is a wasted sd card write at boot. */
+            g_default_title_volume = std::clamp(config::get_default_title_volume(), 0.f, VOLUME_MAX);
+
+            g_home_menu_only = config::get_home_menu_only();
+            g_pause_on_sleep = config::get_pause_on_sleep();
+            g_resume_on_wake = config::get_resume_on_wake();
+            g_wake_delay_ms = std::clamp(config::get_wake_delay_ms(), 0, 10000);
+            g_pause_on_headphone_unplug = config::get_pause_on_headphone_unplug();
+            g_restart_on_resume = config::get_restart_on_resume();
+            g_fade_ms = std::clamp(config::get_fade_ms(), 0, 5000);
+            pm::SetFocusDetect(config::get_focus_detect());
+        }
+
         Result PlayTrack(const char* path, bool one_shot = false) {
             /* Open file and allocate */
             auto source = OpenFile(path);
@@ -324,26 +388,30 @@ namespace tune::impl {
             bool paused = false;
 
             while (g_should_run && g_status == PlayerStatus::Playing) {
-                /* Stop audout whilst paused so that launching a game silences */
-                /* the music straight away, rather than after the queued */
-                /* buffers have drained. */
-                if (paused != g_should_pause) {
-                    paused = g_should_pause;
-                    if (paused) {
+                /* Keep decoding whilst fading out, and only go quiet once the
+                   ramp has actually reached silence. */
+                const bool want_pause = g_should_pause;
+
+                if (want_pause && g_fade_gain <= 0.f) {
+                    /* Stop audout whilst paused so a game has the audio path
+                       to itself rather than us feeding it silence. */
+                    if (!paused) {
+                        paused = true;
                         audoutStopAudioOut();
-                    } else if (R_FAILED(audoutStartAudioOut())) {
+                    }
+                    svcSleepThread(17'000'000);
+                    continue;
+                }
+
+                if (paused) {
+                    if (R_FAILED(audoutStartAudioOut())) {
                         /* Don't append to a stopped device: that surfaces as a */
                         /* playback error and would drop the track from the */
                         /* playlist. Stay paused and retry instead. */
-                        paused = true;
                         svcSleepThread(17'000'000);
                         continue;
                     }
-                }
-
-                if (g_should_pause) {
-                    svcSleepThread(17'000'000);
-                    continue;
+                    paused = false;
                 }
 
                 AudioOutBuffer* buffer = NULL;
@@ -373,6 +441,7 @@ namespace tune::impl {
                     if (nSamples <= 0) {
                         error = true;
                     } else {
+                        ApplyFade(static_cast<s16*>(buffer->buffer), nSamples, want_pause);
                         buffer->data_size = nSamples;
                         R_TRY(audoutAppendAudioOutBuffer(buffer));
                     }
@@ -402,26 +471,12 @@ namespace tune::impl {
         }
 
         R_TRY(audoutInitialize());
-        SetVolume(config::get_volume());
 
-        /* Fetch values from config, sanitize the return value */
-        if (auto c = config::get_repeat(); c <= 2 && c >= 0) {
-            SetRepeatMode(static_cast<RepeatMode>(c));
-        }
-
-        SetShuffleMode(static_cast<ShuffleMode>(config::get_shuffle()));
-        SetDefaultTitleVolume(config::get_default_title_volume());
-
-        /* Home menu music behaviour. */
-        g_home_menu_only = config::get_home_menu_only();
+        /* Only what is needed to decide whether to make a sound, and how loud.
+           The rest is deferred to LoadSettings(), see above. */
+        audoutSetAudioOutVolume(std::clamp(config::get_volume(), 0.f, VOLUME_MAX));
         g_autoplay = config::get_autoplay();
-        g_pause_on_sleep = config::get_pause_on_sleep();
-        g_resume_on_wake = config::get_resume_on_wake();
-        g_wake_delay_ms = std::clamp(config::get_wake_delay_ms(), 0, 10000);
-        g_pause_on_headphone_unplug = config::get_pause_on_headphone_unplug();
-        g_restart_on_resume = config::get_restart_on_resume();
         g_startup_enabled = config::get_startup_enabled();
-        pm::SetFocusDetect(config::get_focus_detect());
 
         /* Stay quiet at boot until the user presses play. */
         g_autoplay_blocked = !g_autoplay;
@@ -447,11 +502,17 @@ namespace tune::impl {
             if (config::get_startup_path(startup_path, sizeof(startup_path))
                     && GetSourceType(startup_path) != SourceType::NONE
                     && sdmc::FileExists(startup_path)) {
+                /* Full volume straight away: the jingle should be heard as
+                   early as possible, not eased in. */
+                g_fade_gain = 1.f;
                 g_status = PlayerStatus::Playing;
                 PlayTrack(startup_path, true);
                 g_status = PlayerStatus::FetchNext;
             }
         }
+
+        /* Whatever plays next eases in rather than cutting straight on. */
+        g_fade_gain = 0.f;
 
         {
             char load_path[PATH_SIZE_MAX];
@@ -647,6 +708,8 @@ namespace tune::impl {
     }
 
     void PmdmntThreadFunc(void *) {
+        LoadSettings();
+
         while (g_should_run) {
             u64 pid{}, new_tid{};
             if (pm::PollCurrentPidTid(&pid, &new_tid)) {
@@ -811,6 +874,15 @@ namespace tune::impl {
     void SetWakeDelayMs(u32 value) {
         g_wake_delay_ms = std::min(value, 10000u);
         config::set_wake_delay_ms(g_wake_delay_ms);
+    }
+
+    u32 GetFadeMs() {
+        return g_fade_ms;
+    }
+
+    void SetFadeMs(u32 value) {
+        g_fade_ms = std::min(value, 5000u);
+        config::set_fade_ms(g_fade_ms);
     }
 
     bool GetRestartOnResume() {

@@ -20,6 +20,9 @@ namespace {
     /* Selectable wake delays, in milliseconds. */
     constexpr std::array WAKE_DELAYS{0u, 500u, 1000u, 1500u, 2000u, 3000u, 5000u};
 
+    /* Selectable fade lengths, in milliseconds. */
+    constexpr std::array FADE_LENGTHS{0u, 200u, 400u, 800u, 1500u, 3000u};
+
     constexpr std::array SupportedTypes{
 #ifdef WANT_MP3
         ".mp3",
@@ -58,13 +61,24 @@ namespace {
         return buf;
     }
 
-    /* Nearest entry in WAKE_DELAYS, so a hand edited config still lands somewhere. */
-    size_t FindDelayIndex(u32 ms) {
+    std::string FormatFade(u32 ms) {
+        if (ms == 0) {
+            return "Off";
+        }
+
+        char buf[16];
+        std::snprintf(buf, sizeof(buf), "%u.%us", ms / 1000, (ms % 1000) / 100);
+        return buf;
+    }
+
+    /* Nearest entry in the list, so a hand edited config still lands somewhere. */
+    template<typename T>
+    size_t FindNearestIndex(const T &values, u32 ms) {
         size_t best = 0;
         u32 best_diff = UINT32_MAX;
 
-        for (size_t i = 0; i < WAKE_DELAYS.size(); i++) {
-            const u32 diff = WAKE_DELAYS[i] > ms ? WAKE_DELAYS[i] - ms : ms - WAKE_DELAYS[i];
+        for (size_t i = 0; i < values.size(); i++) {
+            const u32 diff = values[i] > ms ? values[i] - ms : ms - values[i];
             if (diff < best_diff) {
                 best_diff = diff;
                 best = i;
@@ -144,6 +158,7 @@ tsl::elm::Element *SettingsGui::createUI() {
     bool restart_on_resume = false;
     bool startup_enabled = true;
     u32 wake_delay = 1500;
+    u32 fade_ms = 400;
     float volume = 1.f;
 
     tuneGetHomeMenuOnly(&home_menu_only);
@@ -156,6 +171,7 @@ tsl::elm::Element *SettingsGui::createUI() {
     tuneGetRestartOnResume(&restart_on_resume);
     tuneGetStartupEnabled(&startup_enabled);
     tuneGetWakeDelayMs(&wake_delay);
+    tuneGetFadeMs(&fade_ms);
     tuneGetVolume(&volume);
 
     list->addItem(new tsl::elm::CategoryHeader("Music"));
@@ -215,6 +231,20 @@ tsl::elm::Element *SettingsGui::createUI() {
     });
     list->addItem(startup_toggle);
 
+    /* How long the music takes to ease in and out. */
+    auto fade_item = new tsl::elm::ListItem("Fade");
+    fade_item->setValue(FormatFade(fade_ms));
+    fade_item->setClickListener([fade_item, index = FindNearestIndex(FADE_LENGTHS, fade_ms)](u64 keys) mutable {
+        if (keys & HidNpadButton_A) {
+            index = (index + 1) % FADE_LENGTHS.size();
+            tuneSetFadeMs(FADE_LENGTHS[index]);
+            fade_item->setValue(FormatFade(FADE_LENGTHS[index]));
+            return true;
+        }
+        return false;
+    });
+    list->addItem(fade_item);
+
     list->addItem(new tsl::elm::CategoryHeader("Resuming"));
 
     /* Start over rather than carrying on from the middle. */
@@ -239,7 +269,7 @@ tsl::elm::Element *SettingsGui::createUI() {
     /* Cycles through presets rather than using a slider, so the value is readable. */
     auto delay_item = new tsl::elm::ListItem("Wake delay");
     delay_item->setValue(FormatDelay(wake_delay));
-    delay_item->setClickListener([delay_item, index = FindDelayIndex(wake_delay)](u64 keys) mutable {
+    delay_item->setClickListener([delay_item, index = FindNearestIndex(WAKE_DELAYS, wake_delay)](u64 keys) mutable {
         if (keys & HidNpadButton_A) {
             index = (index + 1) % WAKE_DELAYS.size();
             tuneSetWakeDelayMs(WAKE_DELAYS[index]);

@@ -193,6 +193,12 @@ namespace tune {
                 case TuneIpcCmd_SetStartupEnabled:
                     SET_SINGLE(bool, impl::SetStartupEnabled);
 
+                case TuneIpcCmd_GetFadeMs:
+                    GET_SINGLE(u32, impl::GetFadeMs);
+
+                case TuneIpcCmd_SetFadeMs:
+                    SET_SINGLE(u32, impl::SetFadeMs);
+
                 case TuneIpcCmd_QuitServer:
                     running = false;
                     return 0;

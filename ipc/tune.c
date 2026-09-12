@@ -211,6 +211,14 @@ Result tuneSetPauseOnHeadphoneUnplug(bool value) {
     return tuneSetBool(TuneIpcCmd_SetPauseOnHeadphoneUnplug, value);
 }
 
+Result tuneGetFadeMs(u32 *out) {
+    return serviceDispatchOut(&g_tune, TuneIpcCmd_GetFadeMs, *out);
+}
+
+Result tuneSetFadeMs(u32 value) {
+    return serviceDispatchIn(&g_tune, TuneIpcCmd_SetFadeMs, value);
+}
+
 Result tuneGetRestartOnResume(bool *out) {
     return tuneGetBool(TuneIpcCmd_GetRestartOnResume, out);
 }

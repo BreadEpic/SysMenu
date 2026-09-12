@@ -49,6 +49,8 @@ namespace tune::impl {
     void SetWakeDelayMs(u32 value);
     bool GetPauseOnHeadphoneUnplug();
     void SetPauseOnHeadphoneUnplug(bool value);
+    u32 GetFadeMs();
+    void SetFadeMs(u32 value);
     bool GetRestartOnResume();
     void SetRestartOnResume(bool value);
     bool GetStartupEnabled();
